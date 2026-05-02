@@ -135,4 +135,71 @@ public class Co2Controller {
     public void setNewEmission(Co2Emission e) { this.newEmission = e; }
     public String getSelectedCountryCodeForNew() { return selectedCountryCodeForNew; }
     public void setSelectedCountryCodeForNew(String s) { this.selectedCountryCodeForNew = s; }
+    private String chartCountryCode1;
+    private String chartCountryCode2;
+    private String chartDataJson = "[]";
+    private String chartLabelsJson = "[]";
+    private String chartData2Json = "[]";
+    private String chartLabel1 = "";
+    private String chartLabel2 = "";
+
+    /**
+     * Lädt die Trendlinie für bis zu zwei Länder.
+     */
+    public void loadChart() {
+        try {
+            // Land 1
+            Country country1 = countryService.findByCode(chartCountryCode1);
+            if (country1 == null) { message = "Land 1 nicht gefunden!"; return; }
+
+            List<Co2Emission> data1 = co2Service.findAllByCountryOrderedByYear(country1);
+            chartLabel1 = country1.getName();
+
+            // Jahre als Labels
+            StringBuilder labels = new StringBuilder("[");
+            StringBuilder values1 = new StringBuilder("[");
+            for (int i = 0; i < data1.size(); i++) {
+                labels.append(data1.get(i).getYear());
+                values1.append(Math.round(data1.get(i).getEmissionKt()));
+                if (i < data1.size() - 1) { labels.append(","); values1.append(","); }
+            }
+            labels.append("]");
+            values1.append("]");
+            chartLabelsJson = labels.toString();
+            chartDataJson = values1.toString();
+
+            // Land 2 (optional)
+            if (chartCountryCode2 != null && !chartCountryCode2.isEmpty()) {
+                Country country2 = countryService.findByCode(chartCountryCode2);
+                if (country2 != null) {
+                    List<Co2Emission> data2 = co2Service.findAllByCountryOrderedByYear(country2);
+                    chartLabel2 = country2.getName();
+                    StringBuilder values2 = new StringBuilder("[");
+                    for (int i = 0; i < data2.size(); i++) {
+                        values2.append(Math.round(data2.get(i).getEmissionKt()));
+                        if (i < data2.size() - 1) values2.append(",");
+                    }
+                    values2.append("]");
+                    chartData2Json = values2.toString();
+                }
+            } else {
+                chartData2Json = "[]";
+                chartLabel2 = "";
+            }
+
+            message = null;
+        } catch (Exception e) {
+            message = "Fehler: " + e.getMessage();
+        }
+    }
+
+    public String getChartCountryCode1() { return chartCountryCode1; }
+    public void setChartCountryCode1(String s) { this.chartCountryCode1 = s; }
+    public String getChartCountryCode2() { return chartCountryCode2; }
+    public void setChartCountryCode2(String s) { this.chartCountryCode2 = s; }
+    public String getChartDataJson() { return chartDataJson; }
+    public String getChartLabelsJson() { return chartLabelsJson; }
+    public String getChartData2Json() { return chartData2Json; }
+    public String getChartLabel1() { return chartLabel1; }
+    public String getChartLabel2() { return chartLabel2; }
 }

@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html">
+<h:head>
+    <title>CO2 Trendanalyse – Like Hero To Zero</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f4f0;
+        }
+        .header {
+            background-color: #2e7d32;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { margin: 0; font-size: 28px; }
+        .header a {
+            color: white;
+            text-decoration: none;
+            background-color: #1b5e20;
+            padding: 8px 16px;
+            border-radius: 4px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .card {
+            background-color: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        .card h2 { margin-top: 0; color: #2e7d32; }
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 200px;
+            margin-right: 8px;
+        }
+        input[type="submit"] {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover { background-color: #4caf50; }
+        .chart-container {
+            position: relative;
+            height: 400px;
+        }
+        .message { color: #c62828; font-weight: bold; margin-top: 8px; }
+        label { font-weight: bold; margin-right: 4px; }
+    </style>
+</h:head>
+<h:body>
+    <div class="header">
+        <h1>🌍 Like Hero To Zero</h1>
+        <h:link value="← Zurück zur Startseite" outcome="index"
+                style="background-color:#1b5e20; color:white; padding:8px 16px; border-radius:4px; text-decoration:none;"/>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>📈 CO2 Trendanalyse (2004–2024)</h2>
+            <h:form>
+                <label>Land 1:</label>
+                <h:inputText value="#{co2Controller.chartCountryCode1}"
+                             placeholder="z.B. DE" />
+                <label>Land 2 (optional):</label>
+                <h:inputText value="#{co2Controller.chartCountryCode2}"
+                             placeholder="z.B. FR" />
+                <h:commandButton value="Trendlinie anzeigen"
+                                 action="#{co2Controller.loadChart}" />
+                <div class="message">
+                    <h:outputText value="#{co2Controller.message}"
+                                  rendered="#{not empty co2Controller.message}" />
+                </div>
+            </h:form>
+        </div>
+
+        <div class="card">
+            <div class="chart-container">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+ <script>
+    var labels = #{co2Controller.chartLabelsJson};
+    var data1 = #{co2Controller.chartDataJson};
+    var data2 = #{co2Controller.chartData2Json};
+    var label1 = "#{co2Controller.chartLabel1}";
+    var label2 = "#{co2Controller.chartLabel2}";
+
+    var datasets = [];
+    var scales = {
+        x: { title: { display: true, text: 'Jahr' } },
+        y1: {
+            type: 'linear',
+            display: data1.length > 0,
+            position: 'left',
+            title: { display: true, text: label1 + ' (kt)', color: '#2e7d32' },
+            ticks: { color: '#2e7d32' },
+            grid: { color: 'rgba(46,125,50,0.1)' }
+        },
+        y2: {
+            type: 'linear',
+            display: data2.length > 0,
+            position: 'right',
+            title: { display: true, text: label2 + ' (kt)', color: '#1565c0' },
+            ticks: { color: '#1565c0' },
+            grid: { drawOnChartArea: false }
+        }
+    };
+
+    if (data1.length > 0) {
+        datasets.push({
+            label: label1 || 'Land 1',
+            data: data1,
+            borderColor: '#2e7d32',
+            backgroundColor: 'rgba(46,125,50,0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.3,
+            yAxisID: 'y1'
+        });
+    }
+    if (data2.length > 0) {
+        datasets.push({
+            label: label2 || 'Land 2',
+            data: data2,
+            borderColor: '#1565c0',
+            backgroundColor: 'rgba(21,101,192,0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.3,
+            yAxisID: 'y2'
+        });
+    }
+
+    var ctx = document.getElementById('trendChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: { labels: labels, datasets: datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                title: {
+                    display: true,
+                    text: 'CO2 Emissionen in kt'
+                }
+            },
+            scales: scales
+        }
+    });
+</script>
+</h:body>
+</html>

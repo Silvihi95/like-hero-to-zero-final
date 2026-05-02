@@ -84,4 +84,30 @@ public class Co2EmissionService {
     public Co2Emission findById(Long id) {
         return em.find(Co2Emission.class, id);
     }
+
+    /**
+     * Sucht eine Emission anhand Land und Jahr.
+     */
+    public Co2Emission findByCountryAndYear(Country country, int year) {
+        List<Co2Emission> result = em.createQuery(
+            "SELECT e FROM Co2Emission e WHERE e.country = :country AND e.year = :year",
+            Co2Emission.class)
+            .setParameter("country", country)
+            .setParameter("year", year)
+            .getResultList();
+        return result.isEmpty() ? null : result.get(0);
+    }
+
+    /**
+     * Gibt alle Emissionen eines Landes sortiert nach Jahr zurück.
+     */
+    public List<Co2Emission> findAllByCountryOrderedByYear(Country country) {
+        return em.createQuery(
+            "SELECT e FROM Co2Emission e WHERE e.country = :country " +
+            "AND e.status = :status ORDER BY e.year ASC",
+            Co2Emission.class)
+            .setParameter("country", country)
+            .setParameter("status", Co2Emission.Status.APPROVED)
+            .getResultList();
+    }
 }

@@ -12,7 +12,9 @@ import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.logging.Logger;
@@ -225,32 +227,25 @@ public class Co2DataImportService implements ServletContextListener {
 
             if (scanner.hasNextLine()) scanner.nextLine();
 
-            Map<String, Object[]> latestData = new HashMap<>();
-
+            Map<String, List<Object[]>> allData = new HashMap<>();
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 String[] parts = line.split(",");
                 if (parts.length < 4) continue;
-
                 String entityName = parts[0].trim().replace("\"", "");
                 String isoCode3 = parts[1].trim().replace("\"", "");
                 String yearStr = parts[2].trim();
                 String emissionStr = parts[3].trim();
-
                 if (isoCode3.isEmpty() || isoCode3.length() != 3) continue;
                 if (emissionStr.isEmpty()) continue;
-
                 String isoCode2 = iso3ToIso2(isoCode3);
                 if (isoCode2 == null) continue;
-
                 try {
-                    double year = Double.parseDouble(yearStr);
+                    int year = (int) Double.parseDouble(yearStr);
                     double emission = Double.parseDouble(emissionStr);
-
-                    if (!latestData.containsKey(isoCode2) ||
-                        (double) latestData.get(isoCode2)[0] < year) {
-                        latestData.put(isoCode2, new Object[]{year, emission, entityName});
-                    }
+                    if (year < 2004) continue;
+                    allData.computeIfAbsent(isoCode2, k -> new ArrayList<>())
+                           .add(new Object[]{year, emission, entityName});
                 } catch (NumberFormatException e) {
                     continue;
                 }
@@ -260,33 +255,34 @@ public class Co2DataImportService implements ServletContextListener {
             int newCountries = 0;
             int newEmissions = 0;
 
-            for (Map.Entry<String, Object[]> entry : latestData.entrySet()) {
+            for (Map.Entry<String, List<Object[]>> entry : allData.entrySet()) {
                 String isoCode2 = entry.getKey();
-                int year = (int) (double) entry.getValue()[0];
-                double emissionKt = (double) entry.getValue()[1] / 1000.0;
-                String entityName = (String) entry.getValue()[2];
+                for (Object[] dataPoint : entry.getValue()) {
+                    int year = (int) dataPoint[0];
+                    double emissionKt = (double) dataPoint[1] / 1000.0;
+                    String entityName = (String) dataPoint[2];
+                    String displayName = NAME_MAP.getOrDefault(entityName, entityName);
 
-                String displayName = NAME_MAP.getOrDefault(entityName, entityName);
+                    Country country = countryService.findByCode(isoCode2);
+                    if (country == null) {
+                        country = new Country();
+                        country.setName(displayName);
+                        country.setCountryCode(isoCode2);
+                        countryService.save(country);
+                        newCountries++;
+                    }
 
-                Country country = countryService.findByCode(isoCode2);
-                if (country == null) {
-                    country = new Country();
-                    country.setName(displayName);
-                    country.setCountryCode(isoCode2);
-                    countryService.save(country);
-                    newCountries++;
+                    var existing = co2Service.findByCountryAndYear(country, year);
+                    if (existing != null) continue;
+
+                    Co2Emission emission = new Co2Emission();
+                    emission.setCountry(country);
+                    emission.setYear(year);
+                    emission.setEmissionKt(emissionKt);
+                    emission.setStatus(Co2Emission.Status.APPROVED);
+                    co2Service.save(emission);
+                    newEmissions++;
                 }
-
-                var existing = co2Service.findLatestApprovedByCountry(country);
-                if (!existing.isEmpty() && existing.get(0).getYear() == year) continue;
-
-                Co2Emission emission = new Co2Emission();
-                emission.setCountry(country);
-                emission.setYear(year);
-                emission.setEmissionKt(emissionKt);
-                emission.setStatus(Co2Emission.Status.APPROVED);
-                co2Service.save(emission);
-                newEmissions++;
             }
 
             LOG.info("Import abgeschlossen. " + newCountries +
