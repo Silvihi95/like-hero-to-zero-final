@@ -186,5 +186,5 @@ Die CO2-Daten stammen vom **Global Carbon Project** via **Our World in Data**:
 Diese Anwendung wurde als Fallstudie im Rahmen des Kurses **IPWA02-01** an der **IU Internationalen Hochschule** entwickelt.
 
 - **Studiengang:** Bachelor of Science Medieninformatik
-- **Autorin:** Silvia Hienz
-- **Matrikelnummer:** 321149998
+- **Autorin:** Silvia H.
+- **Matrikelnummer:** 32********
